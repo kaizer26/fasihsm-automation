@@ -21,8 +21,8 @@ Cukup ikuti langkah mudah ini:
 
 1. **Clone Repository**
    ```bash
-   git clone https://github.com/USERNAME/FASIH-SM.git
-   cd FASIH-SM
+   git clone https://github.com/kaizer26/fasihsm-automation.git
+   cd fasihsm-automation
    ```
 
 2. **Jalankan Setup & Start**
@@ -34,6 +34,12 @@ Cukup ikuti langkah mudah ini:
 
 3. **Buka Browser**
    Buka `http://localhost:5173` di browser Anda.
+
+## 🔄 Cara Update ke GitHub
+Jika Anda mengganti kode dan ingin meng-update repository di GitHub:
+1. Double-click `update-repo.bat`.
+2. Masukkan pesan perubahannya.
+3. Tunggu sampai selesai.
 
 ## 🖥️ Akses via Jaringan (Server Mode)
 Jika ingin membagikan akses ke rekan kerja di jaringan WiFi yang sama:
