@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+dist-ssr
+*.local
+
+# Application Data
+backend/output/
+backend/session_*.json
+backend/wilayah_*.json
+backend/Raw_Data_*.xlsx
+backend/Log_*.xlsx
+
+# Logs
+pip-log.txt
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

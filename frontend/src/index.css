@@ -1,0 +1,117 @@
+/* FASIH-SM Custom Styles */
+
+/* Base Styles */
+:root {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Custom Card Styling */
+.card-dark {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.card-dark:hover {
+  border-color: rgba(100, 116, 139, 0.7);
+}
+
+/* Header gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, #60a5fa, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Log Terminal Styling */
+.log-terminal {
+  background: rgba(0, 0, 0, 0.5);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.8rem;
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Status Badge Colors */
+.badge-ready {
+  background: linear-gradient(135deg, #059669, #34d399);
+}
+
+.badge-loading {
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+}
+
+.badge-error {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+}
+
+/* Context Card Grid */
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 576px) {
+  .context-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Action Button Improvements */
+.btn-action {
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
