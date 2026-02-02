@@ -18,8 +18,14 @@ class SessionManager:
         
     def _get_session_filepath(self, username: str) -> str:
         """Get session file path for a username"""
-        # Remove @bps.go.id suffix if present
-        clean_username = username.replace('@bps.go.id', '').strip()
+        # Lowercase and clean username
+        if not username:
+            return ""
+            
+        clean_username = username.lower().strip()
+        if '@' in clean_username:
+            clean_username = clean_username.split('@')[0]
+            
         filename = f"session_{clean_username}.json"
         # Ensure directory exists
         os.makedirs(Config.SESSION_DIR, exist_ok=True)
@@ -62,8 +68,10 @@ class SessionManager:
     def load_session(self, username: str) -> dict:
         """Load session from file, returns None if not found"""
         filepath = self._get_session_filepath(username)
+        print(f"      Looking for session file: {filepath}")
         
         if not os.path.exists(filepath):
+            print(f"      File not found: {filepath}")
             return None
         
         try:

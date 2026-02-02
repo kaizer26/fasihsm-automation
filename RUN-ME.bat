@@ -55,7 +55,7 @@ cd /d %~dp0
 echo.
 echo ============================================================
 echo   SETUP SELESAI!
-echo   Backend Berjalan di: http://localhost:5000
+echo   Backend Berjalan di: http://localhost:5005
 echo   Frontend Berjalan di: http://localhost:5173
 echo ============================================================
 echo.
@@ -68,12 +68,12 @@ cd /d %~dp0frontend
 echo [INFO] Buka http://localhost:5173 di browser Anda.
 echo [INFO] Tekan Ctrl+C di jendela ini untuk berhenti.
 echo.
-npm run dev -- --host
+npm run dev
 
 REM Cleanup backend on exit
 echo.
 echo [INFO] Stopping Backend Server...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5000 ^| findstr LISTENING') do (
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5005 ^| findstr LISTENING') do (
     taskkill /PID %%a /F >nul 2>&1
 )
 echo [OK] Done.

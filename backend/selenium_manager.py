@@ -23,14 +23,32 @@ class SeleniumManager:
         self.username = None
         self.password = None
         
+    def check_browser_alive(self):
+        """Check if browser window is still open and responsive"""
+        if not self.driver:
+            return False
+        try:
+            # Try to get window handles or current URL
+            _ = self.driver.window_handles
+            return True
+        except:
+            return False
+
     def setup_driver(self):
-        """Initialize Chrome driver (non-headless for login)"""
-        if self.driver:
+        """Initialize or recover Chrome driver"""
+        if self.check_browser_alive():
             return self.driver
-            
+        
+        # Clean up dead driver if exists
+        if self.driver:
+            try:
+                self.driver.quit()
+            except:
+                pass
+            self.driver = None
+
         service = Service(ChromeDriverManager().install())
         chrome_options = Options()
-        # NON-HEADLESS for login (required for SSO popup)
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_argument("--disable-logging")
         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -40,12 +58,12 @@ class SeleniumManager:
     
     def minimize_driver(self):
         """Minimize browser window after successful login"""
-        if self.driver:
+        if self.check_browser_alive():
             self.driver.minimize_window()
             
     def restore_driver(self):
         """Restore browser window when needed for UI actions"""
-        if self.driver:
+        if self.setup_driver():
             self.driver.set_window_position(0, 0)
             
     def close_driver(self):
@@ -59,6 +77,37 @@ class SeleniumManager:
             self.is_logged_in = False
             self.cookies = None
     
+    def recover_session(self) -> bool:
+        """Attempt to recover session in new window"""
+        if not self.username or not self.password:
+            return False
+            
+        print(f"🔄 Recovering session for {self.username}...")
+        
+        # Try cookie injection first if we have cookies
+        if self.cookies:
+            try:
+                # Prepare cookies for injection
+                cookie_list = []
+                for cookie in self.cookies:
+                    cookie_list.append({
+                        'name': cookie.name,
+                        'value': cookie.value,
+                        'domain': cookie.domain,
+                        'path': cookie.path,
+                        'secure': cookie.secure
+                    })
+                
+                res = self.inject_saved_session({'cookies': cookie_list, 'username': self.username, 'password': self.password})
+                if res['success']:
+                    return True
+            except:
+                pass
+                
+        # Fallback to full login
+        res = self.login_sso(self.username, self.password)
+        return res['success']
+
     def inject_saved_session(self, session_data: dict) -> dict:
         """
         Inject saved session cookies into webdriver and validate
@@ -80,7 +129,6 @@ class SeleniumManager:
                 domain_cookies[dom].append(cookie)
 
             # Visit each major domain to set cookies
-            # Start with SSO if present
             sso_domains = [d for d in domain_cookies.keys() if 'sso.bps.go.id' in d]
             if sso_domains:
                 self.driver.get(Config.SSO_URL)
@@ -117,26 +165,19 @@ class SeleniumManager:
             self.driver.get(Config.FASIH_SURVEY_URL)
             time.sleep(4)
             
-            # Check if we're logged in by looking for survey elements or redirect to login
+            # Check if we're logged in
             current_url = self.driver.current_url
-            
             if 'sso.bps.go.id' in current_url or 'login' in current_url.lower():
-                # Session invalid, redirected to login
-                # Don't close driver yet, maybe keep it for manual login fallback?
-                # Actually for restore feature, we should close it if it fails
                 self.close_driver()
                 return {'success': False, 'message': 'Session expired, redirected to login'}
             
-            # Session valid, extract fresh cookies
             self.cookies = self._get_authenticated_cookies()
             self.headers = self._build_headers()
             self.username = session_data.get('username')
             self.password = session_data.get('password')
             self.is_logged_in = True
             
-            # Minimize browser
             self.minimize_driver()
-            
             return {'success': True, 'message': 'Session injected successfully'}
             
         except Exception as e:
@@ -163,10 +204,9 @@ class SeleniumManager:
             
             # Check if OTP is required
             try:
-                otp_element = self.driver.find_element(By.XPATH, '//*[@id="otp"]')
+                self.driver.find_element(By.XPATH, '//*[@id="otp"]')
                 return {'success': False, 'needs_otp': True, 'message': 'OTP required'}
             except:
-                # No OTP required, continue to FASIH
                 return self._complete_fasih_login()
                 
         except Exception as e:
@@ -176,20 +216,12 @@ class SeleniumManager:
         """Submit OTP and complete login with verification"""
         try:
             otp_element = self.driver.find_element(By.XPATH, '//*[@id="otp"]')
-            
-            # Clear any existing value first
             otp_element.clear()
             time.sleep(0.3)
-            
-            # Send OTP
             otp_element.send_keys(otp)
             time.sleep(0.5)
             
-            # Verify the input value
-            actual_value = otp_element.get_attribute('value')
-            
-            if actual_value != otp:
-                # OTP input was blocked (probably by a notification)
+            if otp_element.get_attribute('value') != otp:
                 return {
                     'success': False,
                     'needs_otp': True,
@@ -197,11 +229,9 @@ class SeleniumManager:
                     'message': 'Input OTP terblokir. Tutup notifikasi password di browser, lalu klik Retry.'
                 }
             
-            # Click submit
             self.driver.find_element(By.XPATH, '//*[@id="kc-login"]').click()
             time.sleep(2)
             
-            # Check if still on OTP page (wrong OTP)
             try:
                 self.driver.find_element(By.XPATH, '//*[@id="otp"]')
                 return {
@@ -211,7 +241,6 @@ class SeleniumManager:
                     'message': 'OTP salah. Silakan coba lagi.'
                 }
             except:
-                # OTP accepted, continue to FASIH
                 return self._complete_fasih_login()
             
         except Exception as e:
@@ -220,8 +249,7 @@ class SeleniumManager:
     def clear_otp_field(self) -> dict:
         """Clear OTP field for retry"""
         try:
-            otp_element = self.driver.find_element(By.XPATH, '//*[@id="otp"]')
-            otp_element.clear()
+            self.driver.find_element(By.XPATH, '//*[@id="otp"]').clear()
             return {'success': True, 'message': 'OTP field cleared'}
         except Exception as e:
             return {'success': False, 'message': str(e)}
@@ -229,24 +257,17 @@ class SeleniumManager:
     def _complete_fasih_login(self) -> dict:
         """Complete login to FASIH-SM after SSO"""
         try:
-            # Navigate to FASIH OAuth
             self.driver.get(Config.FASIH_OAUTH_URL)
             time.sleep(5)
-            
-            # Navigate to survey page to get cookies
             self.driver.get(Config.FASIH_SURVEY_URL)
             time.sleep(3)
             
-            # Get and store cookies
             self.cookies = self._get_authenticated_cookies()
             self.headers = self._build_headers()
             self.is_logged_in = True
             
-            # Minimize after successful login
             self.minimize_driver()
-            
             return {'success': True, 'needs_otp': False, 'message': 'Login successful'}
-            
         except Exception as e:
             return {'success': False, 'needs_otp': False, 'message': str(e)}
     
@@ -292,9 +313,15 @@ class SeleniumManager:
     
     def navigate_and_click(self, url: str, button_id: str, max_attempts: int = 5) -> dict:
         """
-        Navigate to URL and click a button (for approve/reject/revoke)
+        Navigate to URL and click a button. Recovers if browser window is closed.
         Returns: {'success': bool, 'message': str}
         """
+        # Step 1: Ensure browser is alive, recover if not
+        if not self.check_browser_alive():
+            print("⚠️ Browser window closed. Attempting to recover...")
+            if not self.recover_session():
+                return {'success': False, 'message': 'Browser window closed and recovery failed. Please login again.'}
+        
         try:
             self.driver.get(url)
             wait = WebDriverWait(self.driver, 30)
@@ -314,6 +341,12 @@ class SeleniumManager:
                     clicked = True
                 except (ElementClickInterceptedException, StaleElementReferenceException):
                     attempt += 1
+                    # Re-check status if it was stale
+                    if not self.check_browser_alive():
+                        if not self.recover_session():
+                            return {'success': False, 'message': 'Browser closed during click retry.'}
+                        self.driver.get(url)
+                    
                     button = wait.until(EC.element_to_be_clickable((By.ID, button_id)))
                 except Exception as e:
                     return {'success': False, 'message': str(e)}
@@ -343,9 +376,10 @@ class SeleniumManager:
             
             return {'success': True, 'message': f'{button_id} clicked successfully'}
             
-        except TimeoutException:
-            return {'success': False, 'message': 'Timeout waiting for element'}
         except Exception as e:
+            # Check if it fails because window closed during operation
+            if not self.check_browser_alive():
+                return {'success': False, 'message': 'Browser window was closed during operation.'}
             return {'success': False, 'message': str(e)}
 
 

@@ -59,6 +59,36 @@ const ProgressViewer = ({ taskId, onClose }) => {
                     {getStatusBadge()}
                 </div>
 
+                {/* Summary Metrics */}
+                {(progress.total_assignments > 0) && (
+                    <div className="row g-2 mb-3">
+                        <div className="col-3">
+                            <div className="bg-dark border border-secondary rounded p-2 text-center">
+                                <small className="text-secondary d-block">Total</small>
+                                <span className="fw-bold text-light">{progress.total_assignments}</span>
+                            </div>
+                        </div>
+                        <div className="col-3">
+                            <div className="bg-dark border border-success rounded p-2 text-center">
+                                <small className="text-success d-block">Success</small>
+                                <span className="fw-bold text-success">{progress.success_count || 0}</span>
+                            </div>
+                        </div>
+                        <div className="col-3">
+                            <div className="bg-dark border border-danger rounded p-2 text-center">
+                                <small className="text-danger d-block">Failed</small>
+                                <span className="fw-bold text-danger">{progress.fail_count || 0}</span>
+                            </div>
+                        </div>
+                        <div className="col-3">
+                            <div className="bg-dark border border-info rounded p-2 text-center">
+                                <small className="text-info d-block">Skipped</small>
+                                <span className="fw-bold text-info">{progress.skip_count || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Progress Info */}
                 <div className="mb-3">
                     <div className="d-flex justify-content-between align-items-center mb-1">

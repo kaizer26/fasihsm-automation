@@ -165,7 +165,7 @@ const LoginPage = () => {
                                                     className="form-control bg-dark text-light border-secondary"
                                                     placeholder="username@bps.go.id"
                                                     value={formData.username}
-                                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
                                                     disabled={loading}
                                                 />
                                             </div>
@@ -183,7 +183,7 @@ const LoginPage = () => {
                                                     className="form-control bg-dark text-light border-secondary"
                                                     placeholder="••••••••"
                                                     value={formData.password}
-                                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                                                     disabled={loading}
                                                 />
                                                 <button

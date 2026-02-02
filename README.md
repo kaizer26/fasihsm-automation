@@ -10,11 +10,22 @@ FASIH-SM adalah alat otomatisasi berbasis web untuk mempermudah pengelolaan surv
 - **Support Jaringan Lokal (LAN)**: Bisa diakses oleh rekan kerja dalam satu jaringan WiFi.
 - **UI Modern & Dark Mode**: Antarmuka responsif menggunakan Bootstrap 5.
 
-## 🛠️ Prasyarat
-Sebelum menjalankan, pastikan PC Anda sudah terinstall:
-1. **Python 3.10+**
-2. **Node.js 18+**
-3. **Google Chrome** (Terbaru)
+## � Panduan Instalasi
+
+Jika PC Anda belum memiliki prasyarat di atas, ikuti langkah berikut:
+
+### 1. Install Python
+1. Unduh installer Python 3.10+ di [python.org/downloads](https://www.python.org/downloads/windows/).
+2. Jalankan installer.
+3. **PENTING**: Centang kotak **"Add Python to PATH"** di bagian bawah sebelum klik **Install Now**.
+4. Verifikasi dengan membuka Command Prompt/PowerShell dan ketik: `python --version`.
+
+### 2. Install Node.js
+1. Unduh installer Node.js versi LTS di [nodejs.org](https://nodejs.org/).
+2. Jalankan installer dan ikuti petunjuk (klik Next sampai selesai).
+3. Verifikasi dengan membuka Command Prompt/PowerShell dan ketik: `node -v` dan `npm -v`.
+
+---
 
 ## 🚀 Cara Menjalankan
 Cukup ikuti langkah mudah ini:

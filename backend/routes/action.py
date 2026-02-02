@@ -103,7 +103,8 @@ def download_raw_data_task(task_id: str, survey_id: str, period_id: str, templat
             'progress': 0,
             'message': 'Loading wilayah data...',
             'filename': None,
-            'logs': []
+            'logs': [],
+            'total_assignments': 0
         }
         
         # Try to load from cache first
@@ -135,6 +136,7 @@ def download_raw_data_task(task_id: str, survey_id: str, period_id: str, templat
             if not assignments:
                 continue
                 
+            task_progress[task_id]['total_assignments'] += len(assignments)
             assign_list.extend(assignments)
             
             for assign in assignments:
@@ -227,7 +229,11 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
             'progress': 0,
             'message': 'Getting user role...',
             'filename': None,
-            'logs': []
+            'logs': [],
+            'success_count': 0,
+            'fail_count': 0,
+            'skip_count': 0,
+            'total_assignments': 0
         }
         
         # Get role
@@ -257,6 +263,7 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
         button_id = button_map.get(action_type, 'buttonApprove')
         
         # Status conditions for each role and action
+        # Refactored from fasih_sm_scrape - v6 (1).py
         status_conditions = {
             'approve': {
                 'Pengawas': ['SUBMITTED BY Pencacah'],
@@ -266,16 +273,20 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
             },
             'revoke': {
                 'Pengawas': ['COMPLETED BY Pengawas'],
-                'PML': ['COMPLETED BY PML'],
-                'Admin Kabupaten': ['COMPLETED BY Admin Kabupaten']
+                # Original script has condition: roles == 'Pengawas' and status_assignment == 'COMPLETED BY Pengawas' and status_keberadaan == '3. Tidak Ditemukan'
+                # For revoke purposes, current implementation allows Admin Kabupaten too if needed, but we follow original strictly
             },
             'reject': {
                 'Pengawas': ['SUBMITTED BY Pencacah'],
-                'PML': ['SUBMITTED BY PPL']
+                # Original script: roles == 'Pengawas' and status_assignment == 'SUBMITTED BY Pencacah' and status_keberadaan == '3. Tidak Ditemukan'
             }
         }
         
         allowed_statuses = status_conditions.get(action_type, {}).get(role, [])
+        
+        # Explicitly defined statuses that mean it's ALREADY processed for a role
+        # This helps in skipping "Approve by Admin" or higher
+        skip_words = ['APPROVED', 'COMPLETED', 'REJECTED', 'REVOKED']
         
         processed = 0
         success_count = 0
@@ -290,6 +301,8 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
             if not assignments:
                 continue
             
+            task_progress[task_id]['total_assignments'] += len(assignments)
+            
             for assign in assignments:
                 assignment_id = assign['assignmentId']
                 review_url = f'https://fasih-sm.bps.go.id/survey-collection/survey-review/{assignment_id}/{template_id}/{period_id}/a/1'
@@ -300,23 +313,49 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
                     status_list = parse_assignment_status(history)
                     current_status = status_list[-1]['status_assignment'] if status_list else 'Open'
                     
+                    # Log message for debug
+                    status_upper = current_status.upper()
+                    
                     # Check if status allows action
                     if current_status not in allowed_statuses:
+                        # Extra check: if it's already "APPROVED" or similar, we skip it clearly
+                        is_already_processed = any(word in status_upper for word in skip_words)
+                        reason = "already processed" if is_already_processed else f"status not eligible: {current_status}"
+                        
                         log_data.append({
                             'assignment_id': assignment_id,
                             'smallcode': smallcode,
                             'status': current_status,
                             'action': action_type,
                             'result': 'skipped',
-                            'message': f'Status not eligible: {current_status}'
+                            'message': f'Skipped ({reason})'
                         })
+                        task_progress[task_id]['skip_count'] += 1
                         continue
+
+                    # Special condition from original script: status_keberadaan check for revoke/reject
+                    if action_type in ['revoke', 'reject']:
+                        detail = api_client.get_assignment_detail(assignment_id)
+                        status_keberadaan = get_status_keberadaan(detail)
+                        # Original script specifically checks for '3. Tidak Ditemukan' for revoke/reject by Pengawas
+                        if role == 'Pengawas' and status_keberadaan != '3. Tidak Ditemukan':
+                            log_data.append({
+                                'assignment_id': assignment_id,
+                                'smallcode': smallcode,
+                                'status': current_status,
+                                'action': action_type,
+                                'result': 'skipped',
+                                'message': f'Skipped (status_keberadaan: {status_keberadaan})'
+                            })
+                            task_progress[task_id]['skip_count'] += 1
+                            continue
                     
                     # Perform action using Selenium
                     result = selenium_manager.navigate_and_click(review_url, button_id)
                     
                     if result['success']:
                         success_count += 1
+                        task_progress[task_id]['success_count'] = success_count
                         log_data.append({
                             'assignment_id': assignment_id,
                             'smallcode': smallcode,
@@ -328,6 +367,7 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
                         task_progress[task_id]['logs'].append(f'✅ {assignment_id}: {action_type} success')
                     else:
                         fail_count += 1
+                        task_progress[task_id]['fail_count'] = fail_count
                         log_data.append({
                             'assignment_id': assignment_id,
                             'smallcode': smallcode,
@@ -342,6 +382,7 @@ def approve_task(task_id: str, survey_id: str, period_id: str, template_id: str,
                     
                 except Exception as e:
                     fail_count += 1
+                    task_progress[task_id]['fail_count'] = fail_count
                     log_data.append({
                         'assignment_id': assignment_id,
                         'smallcode': smallcode,
@@ -547,6 +588,84 @@ def get_columns():
             'success': True,
             'columns': columns,
             'fromFile': latest_file
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@action_bp.route('/get-file-columns/<filename>', methods=['GET'])
+def get_file_columns(filename):
+    """Get columns from a specific file"""
+    # Try raw_data first, then log
+    filepath = os.path.join(Config.RAW_DATA_DIR, filename)
+    if not os.path.exists(filepath):
+        filepath = os.path.join(Config.LOG_DIR, filename)
+        
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': 'File not found'}), 404
+    
+    try:
+        df = pd.read_excel(filepath, nrows=0)  # Only read headers
+        columns = smart_sort_columns(list(df.columns))
+        
+        return jsonify({
+            'success': True,
+            'columns': columns,
+            'filename': filename
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@action_bp.route('/export-filtered/<filename>', methods=['POST'])
+def export_filtered(filename):
+    """Export existing file with only selected columns (no re-scraping)"""
+    data = request.get_json()
+    selected_columns = data.get('selectedColumns', [])
+    
+    if not selected_columns:
+        return jsonify({'success': False, 'message': 'No columns selected'}), 400
+    
+    # Find original file
+    filepath = os.path.join(Config.RAW_DATA_DIR, filename)
+    if not os.path.exists(filepath):
+        filepath = os.path.join(Config.LOG_DIR, filename)
+        
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': 'File not found'}), 404
+    
+    try:
+        # Read original file
+        df = pd.read_excel(filepath)
+        
+        # Filter to only selected columns that exist
+        existing_cols = [c for c in selected_columns if c in df.columns]
+        
+        if not existing_cols:
+            return jsonify({'success': False, 'message': 'No valid columns found'}), 400
+        
+        df_filtered = df[existing_cols]
+        
+        # Generate new filename with _filtered suffix
+        base_name = os.path.splitext(filename)[0]
+        timestamp = datetime.now().strftime("%H%M%S")
+        new_filename = f"{base_name}_filtered_{timestamp}.xlsx"
+        new_filepath = os.path.join(Config.RAW_DATA_DIR, new_filename)
+        
+        # Save filtered file
+        df_filtered.to_excel(new_filepath, index=False)
+        
+        return jsonify({
+            'success': True,
+            'filename': new_filename,
+            'columns_count': len(existing_cols),
+            'rows_count': len(df_filtered)
         })
     except Exception as e:
         return jsonify({

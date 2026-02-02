@@ -328,7 +328,6 @@ const DashboardPage = () => {
                             onAction={handleAction}
                             disabled={!canPerformAction}
                             role={role}
-                            surveyName={surveyName}
                         />
 
                         {taskId && (

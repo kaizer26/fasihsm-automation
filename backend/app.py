@@ -59,10 +59,10 @@ if __name__ == '__main__':
     print("=" * 50)
     print("🚀 FASIH-SM Backend Server")
     print("=" * 50)
-    print(f"📍 Local:   http://localhost:5000")
-    print(f"📍 Network: http://{local_ip}:5000")
+    print(f"📍 Local:   http://localhost:5005")
+    print(f"📍 Network: http://{local_ip}:5005")
     print("=" * 50)
     print("⚠️  Pastikan frontend API_URL menggunakan IP yang sama")
     print("=" * 50)
     
-    app.run(host='0.0.0.0', debug=True, port=5000, threaded=True)
+    app.run(host='127.0.0.1', debug=True, port=5005, threaded=True)

@@ -15,11 +15,11 @@ def check_credentials():
     data = request.get_json()
     username = data.get('username', '')
     
-    if not username:
-        return jsonify({'has_session': False, 'password': ''})
+    print(f"🔍 Checking credentials for: {username}")
     
     # Only check for saved credentials, don't validate
     creds = session_manager.check_saved_credentials(username)
+    print(f"   Result: {'Found' if creds['exists'] else 'Not Found'}")
     
     return jsonify({
         'has_session': creds['exists'],

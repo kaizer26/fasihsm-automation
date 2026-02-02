@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use same hostname as frontend for network access
-const API_URL = `http://${window.location.hostname}:5000/api`;
+const API_URL = `http://${window.location.hostname}:5005/api`;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -42,8 +42,10 @@ export const wilayahService = {
 
 export const actionService = {
   getColumns: (surveyName) => api.get(`/action/get-columns?surveyName=${encodeURIComponent(surveyName || '')}`),
+  getFileColumns: (filename) => api.get(`/action/get-file-columns/${encodeURIComponent(filename)}`),
   getHistory: () => api.get('/action/history'),
   downloadRaw: (data) => api.post('/action/download-raw', data),
+  exportFiltered: (filename, selectedColumns) => api.post(`/action/export-filtered/${encodeURIComponent(filename)}`, { selectedColumns }),
   approve: (data) => api.post('/action/approve', data),
   revoke: (data) => api.post('/action/revoke', data),
   reject: (data) => api.post('/action/reject', data),
