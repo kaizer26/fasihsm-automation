@@ -21,7 +21,8 @@ Jika PC Anda belum memiliki prasyarat di atas, ikuti langkah berikut:
 4. Verifikasi dengan membuka Command Prompt/PowerShell dan ketik: `python --version`.
 
 ### 2. Install Node.js
-1. Unduh installer Node.js versi LTS di [nodejs.org](https://nodejs.org/).
+1. Unduh installer Node.js **versi 22 LTS** di [nodejs.org](https://nodejs.org/).
+   > ⚠️ **PENTING**: Vite 7 membutuhkan Node.js **versi 20.19+ atau 22.12+**. Jika Anda menggunakan Node.js versi 18 atau lebih lama, aplikasi tidak akan berjalan.
 2. Jalankan installer dan ikuti petunjuk (klik Next sampai selesai).
 3. Verifikasi dengan membuka Command Prompt/PowerShell dan ketik: `node -v` dan `npm -v`.
 
